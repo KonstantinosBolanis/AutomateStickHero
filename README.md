@@ -1,7 +1,8 @@
 # Solution1
-It takes screenshots with mss and calculates the bar size. If bar_size >= distance then with threading the swipe action is stopped. (But the swipe functionallity even tho it has a duration let's say 3000ms in reality it is excecuted instantly but visually last 3 seconds. So it can not be stopped even if the script is forced stopped.
-# FinalSolution
-It measures the distance from the target and swipes accordingly. It is not perfect tho, but the highest score it achieved is 53 which is huge to human standars. 
+The script captures screenshots using the mss library to calculate the bar size. If the bar size is greater than or equal to the distance, the swipe action is stopped using threading. Note that even though the swipe function has a duration (e.g., 3000ms), it executes instantly but visually lasts for the specified duration. Therefore, the swipe action even tho it is stopped, it keeps happening for the specified duration.
 
-# Importants!
-1) Both files are using scrcpy library (for android control) and the script is in python. The .py is not appearing because i want to discourage people of using an incomplete script that is also not usable without changing some of it's values.
+# FinalSolution
+The script measures the distance from the target and performs a swipe action accordingly. While it's not perfect, it has achieved a high score of 53, which is impressive by human standards.
+
+# Important
+Both scripts utilize the scrcpy library for Android control and are written in Python. The '.py' is not appearing on purpose so people are discouraged to use the imperfect scripts.
