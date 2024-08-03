@@ -1,0 +1,108 @@
+from ppadb.client import Client
+from PIL import Image
+import numpy as np
+import mss
+import threading
+
+# Global variables
+stop_swipe = threading.Event()
+bar_size = 0
+width = 35
+height = 400
+region = {'top': 380, 'left': 80, 'width': width, 'height': height}
+distance = 368
+
+
+def check_bar_size():
+    global bar_size
+    global distance
+    with mss.mss() as sct:
+        screenshot = sct.grab(region)
+        img_before_swipe_np = np.array(screenshot)
+        img_before_swipe_np = img_before_swipe_np[:, :, :3]
+        black_pixel_count_before_swipe = np.sum(np.all(img_before_swipe_np == [0, 0, 0], axis=-1))
+        print(f"Black_pixel_before_swipe: {black_pixel_count_before_swipe}")
+
+    while distance > bar_size and not stop_swipe.is_set():
+        # Initialize MSS
+        with mss.mss() as sct:
+            # Capture the specified region
+            screenshot = sct.grab(region)
+            img_np = np.array(screenshot)
+            img_np = img_np[:, :, :3]  # Take only RGB channels
+            new_black_pixel_count = np.sum(np.all(img_np == [0, 0, 0], axis=-1))
+            bar_size = new_black_pixel_count - black_pixel_count_before_swipe
+            print(f"Bar size: {bar_size}")
+
+
+def swiping_action():
+    global stop_swipe
+    while not stop_swipe.is_set():  # -------------------------------------------------------------
+        # Continue swiping action
+        device.shell("input touchscreen swipe 500 500 500 500 3000")
+        print(f"Distance = {distance} , Bar_size {bar_size}")
+        # Optional: sleep for a short period to prevent rapid firing
+
+
+# Initialize ADB client and get the device
+adb = Client(host='127.0.0.1', port=5037)
+devices = adb.devices()
+if len(devices) == 0:
+    print('No device attached')
+    quit()
+device = devices[0]
+
+while True:
+    image = device.screencap()
+    with open('screen.png', 'wb') as f:
+        f.write(image)
+
+    image = Image.open('screen.png')
+    image = np.array(image, dtype=np.uint8)
+
+    pixels = [list(i[:3]) for i in image[2100]]
+
+    transitions = []
+    ignore = True
+    black = True
+
+    for i, pixel in enumerate(pixels):
+        r, g, b = [int(i) for i in pixel]
+        if ignore and (r + g + b) != 0:
+            continue
+        ignore = False
+        if black and (r + g + b) != 0:
+            black = not black
+            transitions.append(i)
+            continue
+        if not black and (r + g + b) == 0:
+            black = not black
+            transitions.append(i)
+            continue
+
+    if len(transitions) >= 3:
+        start, start_of_the_second_pilar, end_of_the_second_pilar = transitions
+        gap = start_of_the_second_pilar - start
+        target = end_of_the_second_pilar - start_of_the_second_pilar
+        distance = gap + target / 2
+        print(f'Transition points: {transitions}, Distance: {distance}')
+
+        # Create and start threads
+        thread_check_bar_size = threading.Thread(target=check_bar_size)
+        thread_swiping_action = threading.Thread(target=swiping_action)
+
+        thread_check_bar_size.start()
+        thread_swiping_action.start()
+
+        # Wait for the check_bar_size thread to finish
+        thread_check_bar_size.join()
+
+        # Signal the swiping_action thread to stop
+        stop_swipe.set()
+
+        # Wait for the swiping_action thread to handle the stop signal and finish
+        thread_swiping_action.join()
+
+        print("Both counting functions have completed.")
+
+        # Optional sleep to prevent rapid re-execution
