@@ -1,0 +1,100 @@
+import time
+from ppadb.client import Client
+from PIL import Image
+import numpy as np
+
+# Initialize ADB client and get the device
+adb = Client(host='127.0.0.1', port=5037)
+devices = adb.devices()
+if len(devices) == 0:
+    print('No device attached')
+    quit()
+device = devices[0]
+
+while True:
+    image = device.screencap()
+    with open('screen.png', 'wb') as f:
+        f.write(image)
+
+    image = Image.open('screen.png')
+    image = np.array(image, dtype=np.uint8)
+
+    pixels = [list(i[:3]) for i in image[2000]]
+
+    transitions = []
+    ignore = True
+    black = True
+
+    for i, pixel in enumerate(pixels):
+        r, g, b = [int(i) for i in pixel]
+        if ignore and (r + g + b) != 0:
+            continue
+        ignore = False
+        if black and (r + g + b) != 0:
+            black = not black
+            transitions.append(i)
+            continue
+        if not black and (r + g + b) == 0:
+            black = not black
+            transitions.append(i)
+            continue
+
+    # Filter transitions to ensure the first element is greater than 100
+    filtered_transitions = [t for t in transitions if t > 150]
+
+    # Check if there are at least three filtered transitions
+    if len(filtered_transitions) >= 3:
+        filtered_transitions = filtered_transitions[:3]
+        start, start_of_the_second_pilar, end_of_the_second_pilar = filtered_transitions
+        gap = start_of_the_second_pilar - start
+        target = end_of_the_second_pilar - start_of_the_second_pilar
+        distance = gap + target / 2
+        perfect = 0
+        if 0 < distance <= 100:
+            perfect = distance / 1.900
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 100 < distance <= 200:
+            perfect = distance / 1.445
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 200 < distance <= 250:
+            perfect = distance / 1.243  # <1.244
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 250 < distance <= 300:
+            perfect = distance / 1.231
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 300 < distance <= 350:
+            perfect = distance / 1.114
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 350 < distance <= 400:
+            perfect = distance / 1.122
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 400 < distance <= 450:
+            perfect = distance / 1.122
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 450 < distance <= 500:
+            perfect = distance / 1.110
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 500 < distance <= 550:
+            perfect = distance / 1.060
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 550 < distance <= 600:
+            perfect = distance / 1.077
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 600 < distance <= 650:
+            perfect = distance / 1.028
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 650 < distance <= 700:
+            perfect = distance / 1.055
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 700 < distance <= 750:
+            perfect = distance / 1.025
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 750 < distance <= 800:
+            perfect = distance / 1.040
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+        elif 800 < distance <= 900:
+            perfect = distance / 1.030  # <1.050
+            device.shell(f"input touchscreen swipe 500 500 500 500 {int(perfect)}")
+
+        print(f'Transition points: {filtered_transitions}, Distance: {distance}, Perfect: {perfect}')
+        time.sleep(2.5)
